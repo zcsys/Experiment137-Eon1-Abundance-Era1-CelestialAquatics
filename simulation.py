@@ -222,34 +222,41 @@ class Simulation:
         running = True
         clock = pygame.time.Clock()
 
-        while running:
-            # print("\n\n==== BEGIN STEP ====\n")
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-                self.ui_manager.handle_event(event, self)
+        try:
+            while running:
+                # print("\n\n==== BEGIN STEP ====\n")
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        running = False
+                    self.ui_manager.handle_event(event, self)
 
-            if not self.paused:
-                self.things.final_action(self.grid)
-                Rules(self, [0, 1, 2])
-                self.update_state()
+                if not self.paused:
+                    self.things.final_action(self.grid)
+                    Rules(self, [0, 1, 2])
+                    self.update_state()
 
-            self.screen.fill(colors["0"])
-            if self.ui_manager.show_resources:
-                self.grid.draw(self.screen)
-            self.things.draw(self.screen, self.ui_manager.show_info,
-                             self.ui_manager.show_sight,
-                             self.ui_manager.show_forces)
-            self.ui_manager.draw(
-                self.get_state(),
-                self.things.N,
-                self.things.Pop,
-                self.things.E,
-                self.things.structure_mask.sum().item()
-            )
+                self.screen.fill(colors["0"])
+                if self.ui_manager.show_resources:
+                    self.grid.draw(self.screen)
+                self.things.draw(self.screen, self.ui_manager.show_info,
+                                 self.ui_manager.show_sight,
+                                 self.ui_manager.show_forces)
+                self.ui_manager.draw(
+                    self.get_state(),
+                    self.things.N,
+                    self.things.Pop,
+                    self.things.E,
+                    self.things.structure_mask.sum().item()
+                )
 
-            pygame.display.flip()
-            # clock.tick(24)
+                pygame.display.flip()
+                # clock.tick(24)
+        except Exception as e:
+            print("Time of the error:", self.get_state())
+            import traceback
+            print("\nError details:")
+            traceback.print_exc()
+            self.save_simulation()
 
         pygame.quit()
 

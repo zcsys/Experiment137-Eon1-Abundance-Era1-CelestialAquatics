@@ -290,8 +290,21 @@ class Things:
         provisional_positions = self.positions + self.movement_tensor
 
         # Apply toroidal boundaries
-        provisional_positions[:, 0] %= SIMUL_WIDTH
-        provisional_positions[:, 1] %= SIMUL_HEIGHT
+        provisional_positions = torch.stack(
+            [
+                torch.clamp(
+                    provisional_positions[:, 0] % SIMUL_WIDTH,
+                    min = 0,
+                    max = SIMUL_WIDTH - 1e-5
+                ),
+                torch.clamp(
+                    provisional_positions[:, 1] % SIMUL_HEIGHT,
+                    min = 0,
+                    max = SIMUL_HEIGHT - 1e-5
+                )
+            ],
+            dim = 1
+        )
 
         # Get neighboring things
         indices, distances, diffs = vicinity(provisional_positions)
