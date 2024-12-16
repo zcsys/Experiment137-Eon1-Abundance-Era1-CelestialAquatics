@@ -133,7 +133,7 @@ class Things:
                         self.structure_indices
                     ) ** 2 + epsilon
                 ).unsqueeze(2)
-            ).view(self.Pop, 16) * 10.
+            ).view(self.Pop, 16) * 8.
         else:
             col4 = torch.zeros((self.Pop, 16), dtype = torch.float32)
 
@@ -232,14 +232,14 @@ class Things:
         # Reduce energies
         self.energies -= (
             movement_contributions.norm(dim = 2)
-        ).sum(dim = 1) * 1.25
+        ).sum(dim = 1) * 1.
 
         # Return movements
         return movement_tensor.scatter_add(
             0,
             expanded_indices.view(-1, 2),
             movement_contributions.view(-1, 2)
-        ) * 10.
+        ) * 8.
 
     def final_action(self, grid):
         # Update sensory inputs
@@ -313,14 +313,20 @@ class Things:
         ).any(dim = 1)
 
         # StructureUnit-anything collisions
+        size_sums = (
+            self.sizes + THING_TYPES["structuralUnit"]["size"]
+        ).unsqueeze(1)
+
         dist = distances[:, self.structure_mask]
         collision_mask_str = (
-            (0. < dist) & (dist < THING_TYPES["monad"]["size"] * 2)
+            (0. < dist) &
+            (dist < size_sums)
         ).any(dim = 1)
 
         dist = distances[self.structure_mask]
         collision_mask_str[self.structure_mask] = (
-            (0. < dist) & (dist < THING_TYPES["monad"]["size"] * 2)
+            (0. < dist) &
+            (dist < size_sums[self.structure_mask])
         ).any(dim = 1)
 
         # Check energy levels
@@ -397,7 +403,8 @@ class Things:
         )
         if (new_position[0] < size or new_position[0] > SIMUL_WIDTH - size or
             new_position[1] < size or new_position[1] > SIMUL_HEIGHT - size or
-            (dist_mnd < size * 2).any() or (dist_str < size * 2).any()):
+            (dist_str < size + THING_TYPES["structuralUnit"]["size"]).any() or
+            (dist_mnd < size * 2).any()):
             return 0
 
         # Create a new set of attributes
@@ -787,7 +794,6 @@ class Things:
             ),
             dim = 0
         )
-        self.sizes[self.structure_mask] = THING_TYPES["structuralUnit"]["size"]
         self.resource_movements = torch.cat(
             (
                 self.resource_movements,

@@ -71,35 +71,11 @@ def create_initial_genomes(num_monads, input, output):
         dtype = torch.float32
     ).repeat(num_monads, 1)
 
-def check_boundaries(positions):
-    np_pos = positions.numpy()
-    x = np.where(np_pos[:, 0] >= SIMUL_WIDTH)[0]
-    y = np.where(np_pos[:, 1] >= SIMUL_HEIGHT)[0]
-    nan = np.where(np.isnan(np_pos).any(axis = 1))[0]
-
-    if len(x) > 0:
-            print("Horizontal overflow at:", x)
-            print("Values:", np_pos[x, 0])
-            print("Clamping all to 0.0")
-            np_pos[x, 0] = 0.
-
-    if len(y) > 0:
-            print("Vertical overflow at:", y)
-            print("Values:", np_pos[y, 1])
-            print("Clamping all to 0.0")
-            np_pos[y, 1] = 0.
-
-    if len(nan) > 0:
-         print("NaN values found at rows:", nan)
-         raise ValueError("NaN values found in positions")
-
-    return np_pos
-
 def vicinity(source_positions, radius = SIGHT, target_positions = None):
-    source_tree = KDTree(check_boundaries(source_positions),
+    source_tree = KDTree(source_positions.numpy(),
                          boxsize = (SIMUL_WIDTH, SIMUL_HEIGHT))
     if target_positions:
-        target_tree = KDTree(check_boundaries(target_positions),
+        target_tree = KDTree(target_positions.numpy(),
                              boxsize = (SIMUL_WIDTH, SIMUL_HEIGHT))
     else:
         target_tree, target_positions = source_tree, source_positions

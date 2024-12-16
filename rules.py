@@ -1,11 +1,10 @@
 from base_vars import *
-from base_vars import (N_TARGET, SYSTEM_HEAT, METABOLIC_ACTIVITY_CONSTANT,
+from base_vars import (SYSTEM_HEAT, METABOLIC_ACTIVITY_CONSTANT,
                        AUTO_FISSION_THRESHOLD)
 import torch
 
 def Rules(simul, n):
-    global N_TARGET, SYSTEM_HEAT, METABOLIC_ACTIVITY_CONSTANT, \
-           AUTO_FISSION_THRESHOLD
+    global SYSTEM_HEAT, METABOLIC_ACTIVITY_CONSTANT, AUTO_FISSION_THRESHOLD
 
     # Coming into existence and perishing
     if 0 in n:

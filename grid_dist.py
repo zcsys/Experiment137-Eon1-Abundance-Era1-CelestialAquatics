@@ -22,7 +22,7 @@ def plot_grid_distribution(grid, bins=50):
    plt.tight_layout()
    plt.show()
 
-load_file = "simulation_20241216_223523.json"
+load_file = "simulation_20241217_012214.json"
 with open(load_file, 'r') as f:
     saved_data = json.load(f)
     grid = Grid(saved_state = saved_data["grid"])
