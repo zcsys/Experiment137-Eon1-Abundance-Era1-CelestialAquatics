@@ -81,7 +81,7 @@ class Things:
                 (
                     self.distances[self.monad_mask][
                         :, self.energy_mask
-                    ] ** 2 + 1e-5
+                    ] ** 2 + epsilon
                 ).unsqueeze(2)
             ).sum(dim = 1) * 6.
         else:
@@ -95,7 +95,7 @@ class Things:
                 (
                     self.distances[self.monad_mask][
                         :, self.monad_mask
-                    ] ** 2 + 1e-5
+                    ] ** 2 + epsilon
                 ).unsqueeze(2)
             ).sum(dim = 1) * 10.
         else:
@@ -131,7 +131,7 @@ class Things:
                         self.distances[self.monad_mask],
                         1,
                         self.structure_indices
-                    ) ** 2 + 1e-5
+                    ) ** 2 + epsilon
                 ).unsqueeze(2)
             ).view(self.Pop, 16) * 10.
         else:
@@ -193,7 +193,7 @@ class Things:
                         self.distances[self.monad_mask][:, self.structure_mask],
                         1,
                         self.structure_indices
-                    ) ** 2 + 1e-5
+                    ) ** 2 + epsilon
                 ).unsqueeze(2)
             ).unsqueeze(2).expand(-1, -1, 3, -1) *
             neural_action[:, 8:32].view(self.Pop, 8, 3, 1)
@@ -225,7 +225,7 @@ class Things:
                     self.distances[self.monad_mask][:, self.structure_mask],
                     1,
                     self.structure_indices
-                ) ** 2 + 1e-5
+                ) ** 2 + epsilon
             ).unsqueeze(2)
         ) * neural_action[:, 0:8].unsqueeze(2)
 
@@ -290,20 +290,17 @@ class Things:
         provisional_positions = self.positions + self.movement_tensor
 
         # Apply toroidal boundaries
-        provisional_positions = torch.stack(
-            [
-                torch.clamp(
-                    provisional_positions[:, 0] % SIMUL_WIDTH,
-                    min = 0,
-                    max = SIMUL_WIDTH - 1e-5
-                ),
-                torch.clamp(
-                    provisional_positions[:, 1] % SIMUL_HEIGHT,
-                    min = 0,
-                    max = SIMUL_HEIGHT - 1e-5
-                )
-            ],
-            dim = 1
+        provisional_positions[:, 0] %= SIMUL_WIDTH
+        provisional_positions[:, 0] = torch.where(
+            provisional_positions[:, 0] >= SIMUL_WIDTH,
+            torch.tensor(0.),
+            provisional_positions[:, 0]
+        )
+        provisional_positions[:, 1] %= SIMUL_HEIGHT
+        provisional_positions[:, 1] = torch.where(
+            provisional_positions[:, 1] >= SIMUL_HEIGHT,
+            torch.tensor(0.),
+            provisional_positions[:, 1]
         )
 
         # Get neighboring things
@@ -555,7 +552,7 @@ class Things:
         )
 
     def add_energyUnits_atGridCells(self, feature, threshold):
-        cell_indices = (feature > threshold).nonzero()
+        cell_indices = (feature >= threshold).nonzero()
         occupied_grid_cells = self.positions // GRID_CELL_SIZE
 
         positions_to_add = torch.empty((0, 2), dtype = torch.float32)
@@ -573,7 +570,7 @@ class Things:
                     ),
                     dim = 0
                 )
-                feature[y, x] -= threshold
+                feature[y, x] = RESOURCE_TARGET
 
         N = len(positions_to_add)
         if N == 0:
@@ -650,6 +647,9 @@ class Things:
             elif thing_type == "monad":
                 pygame.draw.circle(screen, thing_color, (int(pos[0].item()),
                                    int(pos[1].item())), size)
+            elif thing_type == "structuralUnit":
+                pygame.draw.circle(screen, thing_color, (int(pos[0].item()),
+                                   int(pos[1].item())), size)
 
             if show_info and thing_type == "monad":
                 # Show energy
@@ -677,19 +677,19 @@ class Things:
                 input_vector_1 = self.input_vectors[idx, 0:2].squeeze(1)
                 input_vector_2 = self.input_vectors[idx, 2:4].squeeze(1)
                 input_vector_3 = self.input_vectors[idx, 4:6].squeeze(1)
-                movement_vector = self.movement_tensor[i]
+                movement_vec = self.movement_tensor[i]
             except:
                 show_forces = False
             if show_forces and thing_type == "monad":
-                input_vector_1 /= torch.norm(input_vector_1, dim = 0) + 1e-5
-                input_vector_2 /= torch.norm(input_vector_2, dim = 0) + 1e-5
-                input_vector_3 /= torch.norm(input_vector_3, dim = 0) + 1e-5
-                movement_vector /= torch.norm(movement_vector, dim = 0) + 1e-5
+                input_vector_1 /= torch.norm(input_vector_1, dim = 0) + epsilon
+                input_vector_2 /= torch.norm(input_vector_2, dim = 0) + epsilon
+                input_vector_3 /= torch.norm(input_vector_3, dim = 0) + epsilon
+                movement_vec /= torch.norm(movement_vec, dim = 0) + epsilon
 
                 end_pos_1 = pos + 2 * input_vector_1 * self.sizes[i]
                 end_pos_2 = pos + 2 * input_vector_2 * self.sizes[i]
                 end_pos_3 = pos + 2 * input_vector_3 * self.sizes[i]
-                end_pos_4 = pos - 2 * movement_vector * self.sizes[i]
+                end_pos_4 = pos - 2 * movement_vec * self.sizes[i]
 
                 pygame.draw.line(screen, colors["R"], (int(pos[0].item()),
                                  int(pos[1].item())), (int(end_pos_1[0].item()),
@@ -703,11 +703,6 @@ class Things:
                 pygame.draw.line(screen, colors["RGB"], (int(pos[0].item()),
                                  int(pos[1].item())), (int(end_pos_4[0].item()),
                                  int(end_pos_3[1].item())), 2)
-
-            # Draw structural units
-            if thing_type == "structuralUnit":
-                pygame.draw.circle(screen, thing_color, (int(pos[0].item()),
-                                   int(pos[1].item())), size)
 
     def get_state(self):
         return {
@@ -796,25 +791,7 @@ class Things:
         self.resource_movements = torch.cat(
             (
                 self.resource_movements,
-                torch.cat(
-                    (
-                        # Red
-                        torch.rand(
-                            (POP_STR, 2, 1),
-                            dtype = torch.float32
-                        ) * 2 - 1,
-
-                        # Green
-                        torch.zeros((POP_STR, 2, 1), dtype = torch.float32),
-
-                        #Blue
-                        torch.rand(
-                            (POP_STR, 2, 1),
-                            dtype = torch.float32
-                        ) * 2 - 1,
-                    ),
-                    dim = 2
-                )
+                torch.rand((POP_STR, 2, 3), dtype = torch.float32) * 2 - 1
             ),
             dim = 0
         )

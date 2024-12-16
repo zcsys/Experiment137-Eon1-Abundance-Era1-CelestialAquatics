@@ -14,6 +14,7 @@ class Grid:
         self.grid_x = SIMUL_WIDTH // cell_size
         self.grid_y = SIMUL_HEIGHT // cell_size
         self.diffusion_rate = diffusion_rate
+        self.num_cells = self.grid_x * self.grid_y
 
         # Laplacian kernel
         self.kernel = torch.tensor(
@@ -45,20 +46,24 @@ class Grid:
                                 dtype = torch.float32)
         self.fill()
 
-    def add(self, channel = 1, n = 1):
-        self.grid[
-            0,
-            channel,
-            torch.randint(0, self.grid_y, (n,)),
-            torch.randint(0, self.grid_x, (n,))
-        ] = 255.
+    def add(self, channel, n, fill_target):
+        y = torch.randint(0, self.grid_y, (n,))
+        x = torch.randint(0, self.grid_x, (n,))
+        self.grid[0, channel, y, x] = torch.max(
+            self.grid[0, channel, y, x],
+            torch.tensor(fill_target)
+        )
 
-    def fill(self, V = RESOURCE_TARGET):
+    def fill(self, resource_per_cell = RESOURCE_TARGET, fill_target = 128.):
         for i in range(self.feature_dim):
-            excess = ((self.grid[0][i].sum() - V / 3) // 255).int()
+            tot = self.grid[0][i].sum()
+            excess = (
+                (tot - resource_per_cell * self.num_cells) //
+                (fill_target - tot / self.num_cells)
+            ).int()
             if excess < 0:
-                self.add(i, -excess)
-    
+                self.add(i, -excess, fill_target)
+
     def gradient(self):
         self.padded = F.pad(self.grid, (1, 1, 1, 1), mode = "circular")
         grad_x = F.conv2d(
@@ -88,7 +93,7 @@ class Grid:
         torch.clamp_(self.grid[0], 0, 255)
         self.fill()
 
-    def apply_forces(self, force_field, scale = 0.001):
+    def apply_forces(self, force_field, scale = 0.01):
         # Get movements
         x_positive = torch.clamp(force_field[0], min = 0) * self.grid[0] * scale
         x_negative = torch.clamp(force_field[0], max = 0) * self.grid[0] * scale

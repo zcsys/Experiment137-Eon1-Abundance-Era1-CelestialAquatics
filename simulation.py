@@ -251,12 +251,11 @@ class Simulation:
 
                 pygame.display.flip()
                 # clock.tick(24)
-        except Exception as e:
+        except:
             print("Time of the error:", self.get_state())
-            import traceback
-            print("\nError details:")
-            traceback.print_exc()
             self.save_simulation()
+            import traceback
+            traceback.print_exc()
 
         pygame.quit()
 

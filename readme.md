@@ -50,8 +50,9 @@
   * Monad8A203: Monad with 32 input, 11 output, and 160 hidden neurons, governed
 								by 8715 parameters, having the ability to sense and move
 								surrounding structural units
-  * Monad8B265: Monad with 32 input, 35 output, and 198 neurons, governed by
-								15739 parameters, which can control the surrounding structural units' manipulation of resources
+  * Monad8B265: Monad with 32 input, 35 output, and 198 hidden neurons, governed
+								by 15739 parameters, which can control surrounding structural
+								units' manipulation of resources
 * KDTree to calculate sparse distance matrix
 * conv2d to calculate resource diffusion
 

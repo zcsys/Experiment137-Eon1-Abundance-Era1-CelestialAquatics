@@ -59,32 +59,47 @@ def flattened_identity_matrix(N, x = None):
     return [1 if i == j and i < lt else 0 for j in range(N) for i in range(N)]
 
 def create_initial_genomes(num_monads, input, output):
-    if input > 2 * output:
-        return torch.tensor(
-            flattened_identity_matrix(input) +
-            [0 for _ in range(3 * input ** 2)] +
-            [0 for _ in range(4 * input)] +
-            flattened_identity_matrix(4 * input)[:4 * input ** 2] +
-            [0 for _ in range(input)] +
-            [0 for _ in range((input + 1) * output)],
-            dtype = torch.float32
-        ).repeat(num_monads, 1)
-    else:
-        return torch.tensor(
-            flattened_identity_matrix(input) +
-            [0 for _ in range(3 * input ** 2)] +
-            [0 for _ in range(4 * input)] +
-            flattened_identity_matrix(4 * input)[:8 * input * output] +
-            [0 for _ in range(2 * output)] +
-            [0 for _ in range((2 * output + 1) * output)],
-            dtype = torch.float32
-        ).repeat(num_monads, 1)
+    L1_size = 4 * input
+    L2_size = max(input, 2 * output)
+    return torch.tensor(
+        flattened_identity_matrix(input) +
+        [0 for _ in range(input * (L1_size - input))] +
+        [0 for _ in range(L1_size)] +
+        flattened_identity_matrix(L1_size)[:L1_size * L2_size] +
+        [0 for _ in range(L2_size)] +
+        [0 for _ in range((L2_size + 1) * output)],
+        dtype = torch.float32
+    ).repeat(num_monads, 1)
+
+def check_boundaries(positions):
+    np_pos = positions.numpy()
+    x = np.where(np_pos[:, 0] >= SIMUL_WIDTH)[0]
+    y = np.where(np_pos[:, 1] >= SIMUL_HEIGHT)[0]
+    nan = np.where(np.isnan(np_pos).any(axis = 1))[0]
+
+    if len(x) > 0:
+            print("Horizontal overflow at:", x)
+            print("Values:", np_pos[x, 0])
+            print("Clamping all to 0.0")
+            np_pos[x, 0] = 0.
+
+    if len(y) > 0:
+            print("Vertical overflow at:", y)
+            print("Values:", np_pos[y, 1])
+            print("Clamping all to 0.0")
+            np_pos[y, 1] = 0.
+
+    if len(nan) > 0:
+         print("NaN values found at rows:", nan)
+         raise ValueError("NaN values found in positions")
+
+    return np_pos
 
 def vicinity(source_positions, radius = SIGHT, target_positions = None):
-    source_tree = KDTree(source_positions.numpy(),
+    source_tree = KDTree(check_boundaries(source_positions),
                          boxsize = (SIMUL_WIDTH, SIMUL_HEIGHT))
     if target_positions:
-        target_tree = KDTree(target_positions.numpy(),
+        target_tree = KDTree(check_boundaries(target_positions),
                              boxsize = (SIMUL_WIDTH, SIMUL_HEIGHT))
     else:
         target_tree, target_positions = source_tree, source_positions
