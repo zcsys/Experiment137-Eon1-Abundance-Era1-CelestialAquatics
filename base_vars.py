@@ -12,9 +12,9 @@ METABOLIC_ACTIVITY_CONSTANT = 0.1
 UNIT_ENERGY = 1000
 SYSTEM_HEAT = 3
 GRID_CELL_SIZE = 10
-RESOURCE_TARGET = 45
-FILL_TARGET = 50
-ENERGY_THRESHOLD = 64
+RESOURCE_TARGET = 64
+ENERGY_THRESHOLD = 120
+FILL_TARGET = RESOURCE_TARGET + (ENERGY_THRESHOLD - RESOURCE_TARGET) * 0.25
 epsilon = 1e-5
 
 colors = {
@@ -72,4 +72,14 @@ def update_system_heat(new_value):
     SYSTEM_HEAT = new_value
     for module in sys.modules.values():
         if hasattr(module, "SYSTEM_HEAT"):
-            module.SYSTEM_HEAT = new_value
+            module.SYSTEM_HEAT = SYSTEM_HEAT
+
+def update_energy_threshold(new_value):
+    global ENERGY_THRESHOLD, FILL_TARGET
+    ENERGY_THRESHOLD = new_value
+    FILL_TARGET = RESOURCE_TARGET + (ENERGY_THRESHOLD - RESOURCE_TARGET) * 0.25
+    for module in sys.modules.values():
+        if hasattr(module, "ENERGY_THRESHOLD"):
+            module.ENERGY_THRESHOLD = ENERGY_THRESHOLD
+        if hasattr(module, "FILL_TARGET"):
+            module.FILL_TARGET = FILL_TARGET

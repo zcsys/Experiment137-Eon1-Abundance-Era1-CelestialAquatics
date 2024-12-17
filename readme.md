@@ -6,7 +6,7 @@
 * Pre-monad creations
 
 #### Era 1: Monadology
-* ANN PoC
+* Neuroevolution PoC
 * Creations with a feed-forward action mechanism
 	* Monad05: simple 5-neuron monad with no activation function (chemotaxis)
 	* Monad15: simple 5-neuron monad with tanh

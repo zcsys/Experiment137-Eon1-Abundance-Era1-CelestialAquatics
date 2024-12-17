@@ -8,7 +8,7 @@ from helpers import *
 
 class Grid:
     def __init__(self, cell_size = GRID_CELL_SIZE, feature_dim = 3,
-                 diffusion_rate = 0.001, saved_state = None):
+                 diffusion_rate = 0.01, saved_state = None):
         self.cell_size = cell_size
         self.feature_dim = feature_dim
         self.grid_x = SIMUL_WIDTH // cell_size

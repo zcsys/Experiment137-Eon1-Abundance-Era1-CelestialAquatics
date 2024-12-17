@@ -162,9 +162,13 @@ class Simulation:
     def __init__(self, things_object, load_file = None):
         pygame.init()
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-        pygame.display.set_caption("Eon 1 Era 1: Celestial Aquatics")
+        pygame.display.set_caption(
+            "Experiment 137 - Eon 1 Era 1: Celestial Aquatics"
+        )
         self.things = things_object
         self.age_start_time = time.time()
+
+        # self.things.add_structuralUnits(240)
 
         if load_file:
             with open(load_file, 'r') as f:
@@ -232,7 +236,7 @@ class Simulation:
 
                 if not self.paused:
                     self.things.final_action(self.grid)
-                    Rules(self, [0, 1, 2])
+                    Rules(self, [0, 1, 2, 3])
                     self.update_state()
 
                 self.screen.fill(colors["0"])

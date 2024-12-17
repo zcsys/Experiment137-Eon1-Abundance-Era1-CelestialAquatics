@@ -203,7 +203,7 @@ class Things:
             0,
             expanded_indices.view(-1, 2, 1).expand(-1, -1, 3),
             manipulation_contributions.view(-1, 2, 3)
-        ).clamp_(-1, 1)
+        ).clamp_(-10, 10)
 
         # Calculate and apply force field with diffusion
         for i in range(2): # For vertical and horizontal axes
@@ -227,13 +227,13 @@ class Things:
                     self.structure_indices
                 ) ** 2 + epsilon
             ).unsqueeze(2)
-        ) * neural_action[:, 0:8].unsqueeze(2) * 8.
-
-        # Reduce energies
-        self.energies -= (
+        ) * neural_action[:, 0:8].unsqueeze(2) * 8. # This scaling is because
+                                                    # the minimum possible
+        # Reduce energies                           # distance between a monad
+        self.energies -= (                          # and a structural unit is 8
             movement_contributions.norm(dim = 2)
-        ).sum(dim = 1) * 0.125
-
+        ).sum(dim = 1) * 0.125 # This scaling is because a monad can interact
+                               # with 8 different structural units
         # Return movements
         return movement_tensor.scatter_add(
             0,
@@ -797,7 +797,7 @@ class Things:
         self.resource_movements = torch.cat(
             (
                 self.resource_movements,
-                torch.rand((POP_STR, 2, 3), dtype = torch.float32) * 2 - 1
+                torch.rand((POP_STR, 2, 3), dtype = torch.float32) * 20 - 10
             ),
             dim = 0
         )
