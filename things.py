@@ -110,6 +110,7 @@ class Things:
             col3[:, channel * 3] = grid.grid[0, channel, y_pos, x_pos]
             col3[:, channel * 3 + 1] = grad_x[0, channel, y_pos, x_pos]
             col3[:, channel * 3 + 2] = grad_y[0, channel, y_pos, x_pos]
+        col3 /= 255
 
         # Monads can interact with at most 8 structural units
         if self.monad_mask.any() and self.structure_mask.any():
@@ -143,7 +144,7 @@ class Things:
                 col1,
                 col2,
                 col3,
-                col4 / 255,
+                col4,
                 (self.energies / 10000).unsqueeze(1),
                 self.internal_states
             ),
