@@ -197,7 +197,7 @@ class Things:
                 ).unsqueeze(2)
             ).unsqueeze(2).expand(-1, -1, 3, -1) *
             neural_action[:, 8:32].view(self.Pop, 8, 3, 1)
-        )
+        ) * 8.
 
         self.resource_movements.scatter_add_(
             0,
@@ -227,19 +227,19 @@ class Things:
                     self.structure_indices
                 ) ** 2 + epsilon
             ).unsqueeze(2)
-        ) * neural_action[:, 0:8].unsqueeze(2)
+        ) * neural_action[:, 0:8].unsqueeze(2) * 8.
 
         # Reduce energies
         self.energies -= (
             movement_contributions.norm(dim = 2)
-        ).sum(dim = 1) * 1.
+        ).sum(dim = 1) * 0.125
 
         # Return movements
         return movement_tensor.scatter_add(
             0,
             expanded_indices.view(-1, 2),
             movement_contributions.view(-1, 2)
-        ) * 8.
+        )
 
     def final_action(self, grid):
         # Update sensory inputs
@@ -252,7 +252,7 @@ class Things:
 
         # Monad movements & internal state
         if self.monad_mask.any():
-            neural_action = self.neural_action().squeeze(2)
+            neural_action = self.neural_action()
             self.movement_tensor[self.monad_mask] = neural_action[:, :2]
             self.internal_states = neural_action[:, 35:39]
 

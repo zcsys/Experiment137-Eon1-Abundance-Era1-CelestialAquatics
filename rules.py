@@ -48,4 +48,5 @@ def Rules(simul, n):
 
     # Resource management
     if 2 in n:
-        simul.things.add_energyUnits_atGridCells(simul.grid.grid[0][1], 192)
+        simul.things.add_energyUnits_atGridCells(simul.grid.grid[0][1],
+                                                 ENERGY_THRESHOLD)

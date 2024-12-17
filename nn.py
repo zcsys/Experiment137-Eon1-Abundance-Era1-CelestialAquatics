@@ -49,4 +49,4 @@ class nn2:
     def forward(self, inputs):
         ff_1 = torch.relu(self.W1 @ inputs + self.B1)
         ff_2 = torch.relu(self.W2 @ ff_1 + self.B2)
-        return torch.tanh(self.Wo @ ff_2 + self.Bo)
+        return torch.tanh(self.Wo @ ff_2 + self.Bo).squeeze(2)

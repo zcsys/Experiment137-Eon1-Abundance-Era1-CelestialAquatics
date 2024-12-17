@@ -51,10 +51,11 @@ class Grid:
         x = torch.randint(0, self.grid_x, (n,))
         self.grid[0, channel, y, x] = torch.max(
             self.grid[0, channel, y, x],
-            torch.tensor(fill_target)
+            torch.tensor(fill_target, dtype = torch.float32)
         )
 
-    def fill(self, resource_per_cell = RESOURCE_TARGET, fill_target = 128.):
+    def fill(self, resource_per_cell = RESOURCE_TARGET,
+             fill_target = FILL_TARGET):
         for i in range(self.feature_dim):
             tot = self.grid[0][i].sum()
             excess = (
@@ -101,11 +102,11 @@ class Grid:
         y_negative = torch.clamp(force_field[1], max = 0) * self.grid[0] * scale
 
         # Apply movements
-        self.grid[0] -= x_positive + x_negative + y_positive + y_negative
+        self.grid[0] -= x_positive - x_negative + y_positive - y_negative
         self.grid[0] += x_positive.roll(1, dims = -1)  # Right
-        self.grid[0] += x_negative.roll(-1, dims = -1) # Left
+        self.grid[0] -= x_negative.roll(-1, dims = -1) # Left
         self.grid[0] += y_positive.roll(1, dims = -2)  # Down
-        self.grid[0] += y_negative.roll(-1, dims = -2) # Up
+        self.grid[0] -= y_negative.roll(-1, dims = -2) # Up
 
     def draw(self, surface):
         pygame.surfarray.blit_array(
