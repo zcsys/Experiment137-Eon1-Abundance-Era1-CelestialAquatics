@@ -7,14 +7,10 @@ class nn2:
 
         # Set up weights
         L1_size = input_size * 4
-        L2_size = (
-            input_size
-            if input_size > 2 * output_size
-            else output_size * 2
-        )
+        L2_size = max(input_size, 2 * output_size)
 
         # Size check
-        # 4*34*(34+1)+2*39*(4*34+1)+39*(2*39+1) = 18527
+        # 4*34*(34+1)+34*(4*34+1)+23*(2*34+1) = 11005
         assert (
             weights.shape[1] ==
             (

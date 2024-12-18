@@ -62,7 +62,7 @@ class Things:
         return self.lineages[i][0] + len(self.lineages[i])
 
     def apply_genomes(self):
-        """Monad8C227 neurogenetics"""
+        """Monad9204 neurogenetics"""
         self.nn = nn2(self.genomes, 34, 23)
 
     def mutate(self, i, probability = 0.1, strength = 1.):
@@ -150,6 +150,58 @@ class Things:
             ),
             dim = 1
         ).view(self.Pop, 34, 1)
+
+    def sensory_inputs2(self, grid):
+        # Get the vicinity matrix
+        indices, self.distances, self.diffs = vicinity(self.positions)
+
+        # Gradient sensors
+        y_pos = (self.positions[self.monad_mask][:, 1] // grid.cell_size).int()
+        x_pos = (self.positions[self.monad_mask][:, 0] // grid.cell_size).int()
+        grad_x, grad_y = grid.gradient()
+        col1 = torch.zeros((self.Pop, 9), dtype = torch.float32)
+        for channel in range(3):
+            col1[:, channel * 3] = grid.grid[0, channel, y_pos, x_pos]
+            col1[:, channel * 3 + 1] = grad_x[0, channel, y_pos, x_pos]
+            col1[:, channel * 3 + 2] = grad_y[0, channel, y_pos, x_pos]
+        col1 /= 255
+
+        # Monads can interact with at most 8 structural units
+        if self.monad_mask.any() and self.structure_mask.any():
+            dist = self.distances[self.monad_mask][:, self.structure_mask]
+            self.dist_mnd_str, self.structure_indices = torch.topk(
+                dist.masked_fill(dist == 0, float('inf')),
+                k = min(8, self.structure_mask.sum()),
+                dim = 1,
+                largest = False
+            )
+
+            col2  = (
+                torch.gather(
+                    self.diffs[self.monad_mask],
+                    1,
+                    self.structure_indices.unsqueeze(2).expand(-1, -1, 2)
+                ) / (
+                    torch.gather(
+                        self.distances[self.monad_mask],
+                        1,
+                        self.structure_indices
+                    ) ** 2 + epsilon
+                ).unsqueeze(2)
+            ).view(self.Pop, 16) * 8.
+        else:
+            col2 = torch.zeros((self.Pop, 16), dtype = torch.float32)
+
+        # Combine the inputs to create the final input tensor
+        self.input_vectors = torch.cat(
+            (
+                col1,
+                col2,
+                (self.energies / 10000).unsqueeze(1),
+                self.internal_states
+            ),
+            dim = 1
+        ).view(self.Pop, 30, 1)
 
     def neural_action(self):
         return self.nn.forward(self.input_vectors)
@@ -263,6 +315,16 @@ class Things:
         # Apply the field
         grid.apply_forces(force_field * 10)
 
+    def gradient_move(self, neural_action):
+        return (
+            neural_action[:, 0].unsqueeze(1) *
+            self.input_vectors[:, 1:3].squeeze(2) +
+            neural_action[:, 1].unsqueeze(1) *
+            self.input_vectors[:, 4:6].squeeze(2) +
+            neural_action[:, 2].unsqueeze(1) *
+            self.input_vectors[:, 7:9].squeeze(2)
+        )
+
     def final_action(self, grid):
         # Update sensory inputs
         self.sensory_inputs(grid)
@@ -302,6 +364,56 @@ class Things:
         if self.monad_mask.any():
             random_gen = torch.rand(self.Pop)
             to_divide = neural_action[:, 2] > random_gen
+            for i in to_divide.nonzero():
+                self.monad_division(i.item())
+
+        # Apply movements
+        self.update_positions()
+
+        # Update total monad energy
+        self.E = self.energies.sum().item() // 1000
+
+    def final_action2(self, grid):
+        # Update sensory inputs
+        self.sensory_inputs(grid)
+
+        # Initialize the movement tensor for this step
+        if self.N > 0:
+            self.movement_tensor = torch.tensor([[0., 0.]
+                                                 for _ in range(self.N)])
+
+        # Monad movements & internal state
+        if self.monad_mask.any():
+            neural_action = self.neural_action()
+            self.movement_tensor[self.monad_mask] = self.gradient_move(
+                neural_action[:, :3]
+            )
+            self.internal_states = neural_action[:, 20:24]
+
+        # Fetch energyUnit movements
+        if self.energy_mask.any():
+            self.movement_tensor[self.energy_mask] = self.random_action()
+
+        # Fetch structuralUnit reactions
+        if self.structure_mask.any():
+            if self.Pop > 0:
+                self.movement_tensor[self.structure_mask] = self.re_action(
+                    grid,
+                    neural_action[:, 4:20]
+                )
+            else:
+                self.movement_tensor[self.structure_mask] = torch.zeros(
+                    (self.structure_mask.sum(), 2),
+                    dtype = torch.float32
+                )
+
+        # Monads and energy units to leave trace
+        self.trace(grid)
+
+        # Auto-fission
+        if self.monad_mask.any():
+            random_gen = torch.rand(self.Pop)
+            to_divide = neural_action[:, 3] > random_gen
             for i in to_divide.nonzero():
                 self.monad_division(i.item())
 
