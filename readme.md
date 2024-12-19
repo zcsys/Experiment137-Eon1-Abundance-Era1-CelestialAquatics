@@ -63,6 +63,14 @@
 							4 tanh(float32) variables (11k parameters - fewer than that of
 							Monad8B265 despite having internal state because of the changed
 							universe)
+* nn03: Simple feed-forward network with 3 hidden layers (the first 2 with ReLU
+				and the 3rd with leaky RelU) of 4x, 3x, and 2x the input size, finally
+				transformed into the output layer with tanh
+* nn13: Same with nn03, except having DenseNet-style skip connections (from each
+				layer to all subsequent layers)
+* Monad9A406: 
+* Monad9B406: Same with Monad9A406, except using nn13 instead of nn03 (60k
+							parameters)
 
 
 

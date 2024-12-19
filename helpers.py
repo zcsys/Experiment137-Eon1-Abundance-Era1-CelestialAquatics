@@ -58,18 +58,36 @@ def flattened_identity_matrix(N, x = None):
     lt = x if x else N
     return [1 if i == j and i < lt else 0 for j in range(N) for i in range(N)]
 
-def create_initial_genomes(num_monads, input, output):
-    L1_size = 4 * input
-    L2_size = max(input, 2 * output)
-    return torch.tensor(
-        flattened_identity_matrix(input) +
-        [0 for _ in range(input * (L1_size - input))] +
-        [0 for _ in range(L1_size)] +
-        flattened_identity_matrix(L1_size)[:L1_size * L2_size] +
-        [0 for _ in range(L2_size)] +
-        [0 for _ in range((L2_size + 1) * output)],
-        dtype = torch.float32
-    ).repeat(num_monads, 1)
+def create_initial_genomes(num_monads, input, output, monad_gen = 9):
+    if monad_gen == 8:
+        L1_size = 4 * input
+        L2_size = max(input, 2 * output)
+        return torch.tensor(
+            flattened_identity_matrix(input) +
+            [0 for _ in range(input * (L1_size - input))] +
+            [0 for _ in range(L1_size)] +
+            flattened_identity_matrix(L1_size)[:L1_size * L2_size] +
+            [0 for _ in range(L2_size)] +
+            [0 for _ in range((L2_size + 1) * output)],
+            dtype = torch.float32
+        ).repeat(num_monads, 1)
+
+    elif monad_gen == 9:
+        L1_size = 4 * input
+        L2_size = 3 * input
+        L3_size = 2 * input
+        return torch.tensor(
+            [0 for _ in range(6)] +
+            flattened_identity_matrix(input) +
+            [0 for _ in range(input * (L1_size - input))] +
+            [0 for _ in range(L1_size)] +
+            flattened_identity_matrix(L1_size)[:L1_size * L2_size] +
+            [0 for _ in range(L2_size)] +
+            flattened_identity_matrix(L2_size)[:L2_size * L3_size] +
+            [0 for _ in range(L3_size)] +
+            [0 for _ in range((L3_size + 1) * output)],
+            dtype = torch.float32
+        ).repeat(num_monads, 1)
 
 def vicinity(source_positions, radius = SIGHT, target_positions = None):
     source_tree = KDTree(source_positions.numpy(),
