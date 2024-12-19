@@ -251,14 +251,15 @@ class Things:
         for i in range(2):
             force_field[i, 0][
                 indices[:, 1], indices[:, 0]
-            ] += torch.rand((self.Pop,), dtype = torch.float32)
+            ] += torch.rand((self.Pop,), dtype = torch.float32) * 2 - 1
 
         # Energy units to leave blue traces
         indices = (self.positions[self.energy_mask] // grid.cell_size).long()
         for i in range(2):
             force_field[i, 2][
                 indices[:, 1], indices[:, 0]
-            ] += torch.rand((self.energy_mask.sum(),), dtype = torch.float32)
+            ] += torch.rand((self.energy_mask.sum(),),
+                            dtype = torch.float32) * 2 - 1
 
         # Apply the field
         grid.apply_forces(force_field * 10)
