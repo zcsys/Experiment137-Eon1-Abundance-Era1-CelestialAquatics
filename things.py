@@ -44,15 +44,12 @@ class Things:
         )
         self.E = self.energies.sum().item() // 1000
         self.colors = [THING_TYPES[x]["color"] for x in self.thing_types]
-        self.internal_states = torch.zeros((self.Pop, 6), dtype = torch.float32)
+        self.memory = torch.zeros((self.Pop, 6), dtype = torch.float32)
         self.str_manipulations = torch.zeros((0, 2), dtype = torch.float32)
 
         # Initialize genomes and lineages
         # self.genomes = create_initial_genomes(self.Pop, 38, 26)
-        genome_size = (
-            self.internal_states.shape[1] +
-            get_num_parameters_for_nn13(38, 26)
-        )
+        genome_size = 6 + get_num_parameters_for_nn13(38, 26)
         print("Number of neurons:", 38 * 10 + 26)
         print("Genome size:", genome_size)
         self.genomes = torch.zeros((self.Pop, genome_size),
@@ -71,7 +68,7 @@ class Things:
 
     def apply_genomes(self):
         """Monad9x406 neurogenetics"""
-        self.elemental_biases = self.genomes[:, :6]
+        self.elemental_biases = torch.tanh(self.genomes[:, :6])
         self.nn = nn13(self.genomes[:, 6:], 38, 26)
 
     def mutate(self, i, probability = 0.1, strength = 1.):
@@ -128,7 +125,7 @@ class Things:
                 col1,
                 col2,
                 (self.energies / 10000).unsqueeze(1),
-                self.internal_states
+                self.memory
             ),
             dim = 1
         ).view(self.Pop, 38, 1)
@@ -271,7 +268,7 @@ class Things:
             self.movement_tensor[self.monad_mask] = self.gradient_move(
                 neural_action[:, :3]
             )
-            self.internal_states = neural_action[:, 20:26]
+            self.memory = neural_action[:, 20:26]
 
         # Fetch energyUnit movements
         if self.energy_mask.any():
@@ -451,9 +448,9 @@ class Things:
             ),
             dim = 0
         )
-        self.internal_states = torch.cat(
+        self.memory = torch.cat(
             (
-                self.internal_states,
+                self.memory,
                 torch.zeros((1, 6), dtype = torch.float32)
             ),
             dim = 0
@@ -520,7 +517,7 @@ class Things:
             # Remove monad-only attributes
             self.genomes = remove_element(self.genomes, i)
             self.energies = remove_element(self.energies, i)
-            self.internal_states = remove_element(self.internal_states, i)
+            self.memory = remove_element(self.memory, i)
             del self.lineages[i]
 
             # Get general index to remove universal attributes
@@ -740,7 +737,7 @@ class Things:
             'str_manipulations': self.str_manipulations.tolist(),
             'lineages': self.lineages,
             'colors': self.colors,
-            'internal_states': self.internal_states.tolist()
+            'memory': self.memory.tolist()
         }
 
     def load_state(self, state_file):
@@ -758,7 +755,7 @@ class Things:
         self.lineages = state['lineages']
         self.colors = state['colors']
         self.str_manipulations = torch.tensor(state['str_manipulations'])
-        self.internal_states = torch.tensor(state['internal_states'])
+        self.memory = torch.tensor(state['memory'])
 
         self.monad_mask = torch.tensor(
             [thing_type == "monad" for thing_type in self.thing_types]

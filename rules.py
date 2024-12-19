@@ -48,12 +48,12 @@ def Rules(simul, n):
 
     # Population control
     if 2 in n:
-        if simul.things.E <= 500:
+        if simul.things.E <= 750:
             METABOLIC_ACTIVITY_CONSTANT = 0.1
-        elif 500 < simul.things.E <= 600:
-            METABOLIC_ACTIVITY_CONSTANT = 0.1 + 0.009 * (simul.things.E - 500)
-        elif 600 < simul.things.E:
-            METABOLIC_ACTIVITY_CONSTANT = 1. + 0.09 * (simul.things.E - 600)
+        elif 750 < simul.things.E <= 850:
+            METABOLIC_ACTIVITY_CONSTANT = 0.1 + 0.009 * (simul.things.E - 750)
+        elif 850 < simul.things.E:
+            METABOLIC_ACTIVITY_CONSTANT = 1. + 0.09 * (simul.things.E - 850)
 
     # Resource management
     if 3 in n:

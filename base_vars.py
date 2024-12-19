@@ -16,7 +16,7 @@ RESOURCE_TARGET = 64
 ENERGY_THRESHOLD = 115
 FILL_TARGET = RESOURCE_TARGET + (ENERGY_THRESHOLD - RESOURCE_TARGET) * 0.25
 epsilon = 1e-5
-N_TARGET = 600
+N_TARGET = 650
 
 colors = {
     "0": (0, 0, 0),
@@ -62,9 +62,9 @@ THING_TYPES = {
         "color": colors["R"],
         "size": 3
     },
-    "memoryUnit": {
+    "message": {
         "color": colors["B"],
-        "size": 10
+        "size": 2
     }
 }
 

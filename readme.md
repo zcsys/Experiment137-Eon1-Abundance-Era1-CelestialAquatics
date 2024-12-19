@@ -68,7 +68,18 @@
 				transformed into the output layer with tanh
 * nn13: Same with nn03, except having DenseNet-style skip connections (from each
 				layer to all subsequent layers)
-* Monad9A406: 
+* Monad9A406
+	* Sensory inputs - 38 neurons
+		* Elemental bias: 6 tanh(float32)
+		* Gradient sensors: 3 x 3 neurons [0, 1]
+		* Structural unit sensors: 8 x 2 neurons [0, 1]
+		* Energy: 1 neron [0, 1]
+	* Action organs - 26 neurons
+		* Gradient movement: 3 nerons [-1, 1]
+		* Division: 1 neuron [-1, 1]
+		* Structural unit manipulators: 8 x 2 neurons [-1, 1]
+	* Memory - 6 tanh(float32)
+	* Neural net - nn03 with 342 hidden neurons (34k parameters)
 * Monad9B406: Same with Monad9A406, except using nn13 instead of nn03 (60k
 							parameters)
 
