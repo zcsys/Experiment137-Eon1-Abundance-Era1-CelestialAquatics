@@ -34,6 +34,9 @@ class Things:
         self.structure_mask = torch.tensor(
             [thing_type == "structuralUnit" for thing_type in self.thing_types]
         )
+        self.message_mask = torch.tensor(
+            [thing_type == "message" for thing_type in self.thing_types]
+        )
 
         # Initialize state vars
         self.N = len(self.thing_types)
@@ -46,10 +49,15 @@ class Things:
         self.colors = [THING_TYPES[x]["color"] for x in self.thing_types]
         self.memory = torch.zeros((self.Pop, 6), dtype = torch.float32)
         self.str_manipulations = torch.zeros((0, 2), dtype = torch.float32)
+        self.incoming_messages = torch.zeros((self.Pop, 8),
+                                             dtype = torch.float32)
+        self.messages = torch.zeros((self.Pop, 8), dtype = torch.float32)
+        self.carried_messages = torch.zeros((0, 7), dtype = torch.float32)
+        self.floating_meesages = 0
 
         # Initialize genomes and lineages
         # self.genomes = create_initial_genomes(self.Pop, 38, 26)
-        genome_size = 6 + get_num_parameters_for_nn13(38, 26)
+        genome_size = 6 + get_num_parameters_for_nn13(46, 34)
         print("Number of neurons:", 38 * 10 + 26)
         print("Genome size:", genome_size)
         self.genomes = torch.zeros((self.Pop, genome_size),
@@ -67,9 +75,9 @@ class Things:
         return self.lineages[i][0] + len(self.lineages[i])
 
     def apply_genomes(self):
-        """Monad9x406 neurogenetics"""
+        """Monad0Xx neurogenetics"""
         self.elemental_biases = torch.tanh(self.genomes[:, :6])
-        self.nn = nn13(self.genomes[:, 6:], 38, 26)
+        self.nn = nn13(self.genomes[:, 6:], 46, 34)
 
     def mutate(self, i, probability = 0.1, strength = 1.):
         original_genome = self.genomes[i].clone()
@@ -125,10 +133,11 @@ class Things:
                 col1,
                 col2,
                 (self.energies / 10000).unsqueeze(1),
+                self.incoming_messages,
                 self.memory
             ),
             dim = 1
-        ).view(self.Pop, 38, 1)
+        ).view(self.Pop, 46, 1)
 
     def neural_action(self):
         return self.nn.forward(self.input_vectors)
@@ -253,6 +262,10 @@ class Things:
             self.input_vectors[:, 13:14].squeeze(2)
         ) * 10.
 
+    def constant_velocity(self):
+        theta = self.carried_messages[:, 0]
+        return torch.tensor(torch.cos(theta), torch.sin(theta)) * 5.
+
     def final_action(self, grid):
         # Update sensory inputs
         self.sensory_inputs(grid)
@@ -287,15 +300,24 @@ class Things:
                     dtype = torch.float32
                 )
 
+        # Fetch message movements
+        if self.message_mask.any():
+            self.movement_tensor[self.message_mask] = self.constant_velocity()
+
         # Monads and energy units to leave trace
         self.trace(grid)
 
-        # Auto-fission
+        # Auto-fission & messaging
         if self.monad_mask.any():
             random_gen = torch.rand(self.Pop)
             to_divide = neural_action[:, 3] > random_gen
             for i in to_divide.nonzero():
                 self.monad_division(i.item())
+
+            random_gen = torch.rand(self.Pop)
+            emenate = (neural_action[:, 26] > random_gen).nonzero()
+            if emenate.any():
+                self.seminare(emenate, neural_action[emenate, 27:34])
 
         # Apply movements
         self.update_positions()
@@ -360,6 +382,10 @@ class Things:
             ~collision_mask &
             enough_energy
         )
+        final_apply_mask[self.message_mask] = torch.ones(
+            (self.floating_meesages,),
+            dtype = torch.bool
+        )
 
         # Apply the movements
         self.positions = torch.where(
@@ -396,6 +422,36 @@ class Things:
             )
             energy_idx_general = torch.where(self.energy_mask)[0][energy_idx]
             self.remove_energyUnits(unique(energy_idx_general.tolist()))
+
+        # Message-monad collisions
+        message_monad_dist = distances[self.monad_mask][:, self.message_mask]
+        collision_mask = (
+            (0. < message_monad_dist) &
+            (message_monad_dist < (THING_TYPES["monad"]["size"] +
+                                  THING_TYPES["message"]["size"]))
+        )
+
+        if collision_mask.any():
+            monad_has_collision = collision_mask.any(dim = 1)
+            monad_indices = torch.where(monad_has_collision)[0]
+
+            _, first_arrivers = torch.topk(
+                collision_mask[monad_has_collision].int(),
+                dim = 1
+            )
+            message_indices = torch.where(self.message_mask)[0]
+            first_arrivers = message_indices[first_arrivers]
+
+            delivered_messages = self.carried_messages[first_arrivers]
+            self.incoming_messages[monad_indices] = torch.cat(
+                (
+                    torch.cos(delivered_messages[:, 0]).unsqueeze(1),
+                    torch.sin(delivered_messages[:, 0]).unsqueeze(1),
+                    delivered_messages[:, 1:]
+                ),
+                dim = 1
+            )
+            self.delete_signals(unique(first_arrivers.tolist()))
 
     def monad_division(self, i):
         # Set out main attributes and see if division is possible
@@ -462,6 +518,20 @@ class Things:
             ),
             dim = 0
         )
+        self.incoming_messages = torch.cat(
+            (
+                self.incoming_messages,
+                torch.zeros((1, 8), dtype = torch.float32)
+            ),
+            dim = 0
+        )
+        self.messages = torch.cat(
+            (
+                self.messages,
+                torch.zeros((1, 8), dtype = torch.float32)
+            ),
+            dim = 0
+        )
         self.monad_mask = torch.cat(
             (
                 self.monad_mask,
@@ -479,6 +549,13 @@ class Things:
         self.structure_mask = torch.cat(
             (
                 self.structure_mask,
+                torch.tensor([False])
+            ),
+            dim = 0
+        )
+        self.message_mask = torch.cat(
+            (
+                self.message_mask,
                 torch.tensor([False])
             ),
             dim = 0
@@ -518,6 +595,8 @@ class Things:
             self.genomes = remove_element(self.genomes, i)
             self.energies = remove_element(self.energies, i)
             self.memory = remove_element(self.memory, i)
+            self.incoming_messages = remove_element(self.incoming_messages, i)
+            self.messages = remove_element(self.messages, i)
             del self.lineages[i]
 
             # Get general index to remove universal attributes
@@ -570,6 +649,13 @@ class Things:
         self.structure_mask = torch.cat(
             (
                 self.structure_mask,
+                torch.zeros(N, dtype = torch.bool)
+            ),
+            dim = 0
+        )
+        self.message_mask = torch.cat(
+            (
+                self.message_mask,
                 torch.zeros(N, dtype = torch.bool)
             ),
             dim = 0
@@ -641,6 +727,13 @@ class Things:
             ),
             dim = 0
         )
+        self.message_mask = torch.cat(
+            (
+                self.message_mask,
+                torch.zeros(N, dtype = torch.bool)
+            ),
+            dim = 0
+        )
 
     def remove_energyUnits(self, indices):
         for i in indices[::-1]:
@@ -656,9 +749,10 @@ class Things:
         self.monad_mask = self.monad_mask[mask]
         self.energy_mask = self.energy_mask[mask]
         self.structure_mask = self.structure_mask[mask]
+        self.message_mask = self.message_mask[mask]
 
     def draw(self, screen, show_info = True, show_sight = False,
-             show_forces = True, show_communication = True):
+             show_forces = True, show_messages = False):
         for i, pos in enumerate(self.positions):
             thing_type = self.thing_types[i]
             thing_color = self.colors[i]
@@ -672,6 +766,9 @@ class Things:
                 pygame.draw.circle(screen, thing_color, (int(pos[0].item()),
                                    int(pos[1].item())), size)
             elif thing_type == "structuralUnit":
+                pygame.draw.circle(screen, thing_color, (int(pos[0].item()),
+                                   int(pos[1].item())), size)
+            elif show_messages and thing_type == "message":
                 pygame.draw.circle(screen, thing_color, (int(pos[0].item()),
                                    int(pos[1].item())), size)
 
@@ -737,7 +834,10 @@ class Things:
             'str_manipulations': self.str_manipulations.tolist(),
             'lineages': self.lineages,
             'colors': self.colors,
-            'memory': self.memory.tolist()
+            'memory': self.memory.tolist(),
+            'incoming_messages': self.incoming_messages.tolist(),
+            'messages': self.messages.tolist(),
+            'carried_messages': self.carried_messages.tolist()
         }
 
     def load_state(self, state_file):
@@ -756,6 +856,10 @@ class Things:
         self.colors = state['colors']
         self.str_manipulations = torch.tensor(state['str_manipulations'])
         self.memory = torch.tensor(state['memory'])
+        self.incoming_messages = torch.tensor(state['incoming_messages'])
+        self.messages = torch.tensor(state['messages'])
+        self.carried_messages = torch.tensor(state['carried_messages'])
+        self.floating_meesages = len(self.carried_messages)
 
         self.monad_mask = torch.tensor(
             [thing_type == "monad" for thing_type in self.thing_types]
@@ -811,6 +915,13 @@ class Things:
             ),
             dim = 0
         )
+        self.message_mask = torch.cat(
+            (
+                self.message_mask,
+                torch.zeros(POP_STR, dtype = torch.bool)
+            ),
+            dim = 0
+        )
         self.str_manipulations = torch.cat(
             (
                 self.str_manipulations,
@@ -818,3 +929,103 @@ class Things:
             ),
             dim = 0
         )
+
+    def seminare(self, i, message_to_carry):
+        if self.floating_meesages >= MAX_NUM_MSG:
+            return
+
+        idx = torch.where(self.monad_mask)[0][i]
+        N = len(idx)
+        angles = message_to_carry[:, 0] * 2 * math.pi
+        pos = (
+            self.positions[idx] +
+            torch.stack(
+                [
+                    torch.cos(angles),
+                    torch.sin(angles)
+                ],
+                dim = 1
+            ) * 8.
+        )
+
+        self.thing_types = self.thing_types.append(
+            ["message" for _ in range(N)]
+        )
+        self.sizes = torch.cat(
+            (
+                self.sizes,
+                torch.tensor(
+                    [THING_TYPES["message"]["size"] for _ in range(N)]
+                )
+            ),
+            dim = 0
+        )
+        self.positions = torch.cat(
+            (
+                self.positions,
+                pos
+            ),
+            dim = 0
+        )
+        self.colors = self.colors.append(
+            [THING_TYPES["message"]["color"] for _ in range(N)]
+        )
+        self.carried_messages = torch.cat(
+            (
+                self.carried_messages,
+                message_to_carry
+            ),
+            dim = 0
+        )
+        self.floating_meesages += 1
+        self.monad_mask = torch.cat(
+            (
+                self.monad_mask,
+                torch.zeros(N, dtype = torch.bool)
+            ),
+            dim = 0
+        )
+        self.energy_mask = torch.cat(
+            (
+                self.energy_mask,
+                torch.zeros(N, dtype = torch.bool)
+            ),
+            dim = 0
+        )
+        self.structure_mask = torch.cat(
+            (
+                self.structure_mask,
+                torch.zeros(N, dtype = torch.bool)
+            ),
+            dim = 0
+        )
+        self.message_mask = torch.cat(
+            (
+                self.message_mask,
+                torch.ones(N, dtype = torch.bool)
+            ),
+            dim = 0
+        )
+
+        self.energies[i] -= 10.
+
+    def delete_signals(self, indices):
+        for i in indices[::-1]:
+            del self.thing_types[i]
+            del self.colors[i]
+
+        idx = message_indices[indices].sum(1)
+        mask = torch.ones(self.N, dtype = torch.bool)
+        mask[idx] = False
+        self.N = mask.sum().item()
+
+        self.sizes = self.sizes[mask]
+        self.positions = self.positions[mask]
+        self.monad_mask = self.monad_mask[mask]
+        self.energy_mask = self.energy_mask[mask]
+        self.structure_mask = self.structure_mask[mask]
+        self.message_mask = self.message_mask[mask]
+
+        carried_mask = torch.ones(self.floating_meesages, dtype = torch.bool)
+        carried_mask[indices] = False
+        self.carried_messages = self.carried_messages[carried_mask]
