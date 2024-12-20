@@ -57,8 +57,8 @@ class Things:
 
         # Initialize genomes and lineages
         # self.genomes = create_initial_genomes(self.Pop, 38, 26)
-        genome_size = 6 + get_num_parameters_for_nn13(46, 34)
-        print("Number of neurons:", 38 * 10 + 26)
+        genome_size = 6 + get_num_parameters_for_nn13(50, 34)
+        print("Number of neurons:", 50 * 10 + 34)
         print("Genome size:", genome_size)
         self.genomes = torch.zeros((self.Pop, genome_size),
                                    dtype = torch.float32)
@@ -75,9 +75,9 @@ class Things:
         return self.lineages[i][0] + len(self.lineages[i])
 
     def apply_genomes(self):
-        """Monad0Xx neurogenetics"""
+        """Monad0X534 neurogenetics"""
         self.elemental_biases = torch.tanh(self.genomes[:, :6])
-        self.nn = nn13(self.genomes[:, 6:], 46, 34)
+        self.nn = nn13(self.genomes[:, 6:], 50, 34)
 
     def mutate(self, i, probability = 0.1, strength = 1.):
         original_genome = self.genomes[i].clone()
@@ -86,19 +86,45 @@ class Things:
         return original_genome + mutation_mask * mutations * strength
 
     def sensory_inputs(self, grid):
-        # Get the vicinity matrix
+        # For each monad, the combined effect of energy particles in their
+        # vicinity is calculated.
         indices, self.distances, self.diffs = vicinity(self.positions)
+        if self.monad_mask.any() and self.energy_mask.any():
+            col1  = (
+                self.diffs[self.monad_mask][:, self.energy_mask] /
+                (
+                    self.distances[self.monad_mask][
+                        :, self.energy_mask
+                    ] ** 2 + epsilon
+                ).unsqueeze(2)
+            ).sum(dim = 1) * 6.
+        else:
+            col1 = torch.zeros((self.Pop, 2))
+
+        # For each monad, the combined effect of other monads in their vicinity
+        # is calculated.
+        if self.Pop > 1:
+            col2  = (
+                self.diffs[self.monad_mask][:, self.monad_mask] /
+                (
+                    self.distances[self.monad_mask][
+                        :, self.monad_mask
+                    ] ** 2 + epsilon
+                ).unsqueeze(2)
+            ).sum(dim = 1) * 10.
+        else:
+            col2 = torch.zeros((self.Pop, 2))
 
         # Gradient sensors
         y_pos = (self.positions[self.monad_mask][:, 1] // grid.cell_size).int()
         x_pos = (self.positions[self.monad_mask][:, 0] // grid.cell_size).int()
         grad_x, grad_y = grid.gradient()
-        col1 = torch.zeros((self.Pop, 9), dtype = torch.float32)
+        col3 = torch.zeros((self.Pop, 9), dtype = torch.float32)
         for channel in range(3):
-            col1[:, channel * 3] = grid.grid[0, channel, y_pos, x_pos]
-            col1[:, channel * 3 + 1] = grad_x[0, channel, y_pos, x_pos]
-            col1[:, channel * 3 + 2] = grad_y[0, channel, y_pos, x_pos]
-        col1 /= 255
+            col3[:, channel * 3] = grid.grid[0, channel, y_pos, x_pos]
+            col3[:, channel * 3 + 1] = grad_x[0, channel, y_pos, x_pos]
+            col3[:, channel * 3 + 2] = grad_y[0, channel, y_pos, x_pos]
+        col3 /= 255
 
         # Monads can interact with at most 8 structural units
         if self.monad_mask.any() and self.structure_mask.any():
@@ -110,7 +136,7 @@ class Things:
                 largest = False
             )
 
-            col2  = (
+            col4  = (
                 torch.gather(
                     self.diffs[self.monad_mask],
                     1,
@@ -124,7 +150,7 @@ class Things:
                 ).unsqueeze(2)
             ).view(self.Pop, 16) * 8.
         else:
-            col2 = torch.zeros((self.Pop, 16), dtype = torch.float32)
+            col4 = torch.zeros((self.Pop, 16), dtype = torch.float32)
 
         # Combine the inputs to create the final input tensor
         self.input_vectors = torch.cat(
@@ -132,12 +158,14 @@ class Things:
                 self.elemental_biases,
                 col1,
                 col2,
+                col3,
+                col4,
                 (self.energies / 10000).unsqueeze(1),
                 self.incoming_messages,
                 self.memory
             ),
             dim = 1
-        ).view(self.Pop, 46, 1)
+        ).view(self.Pop, 50, 1)
 
     def neural_action(self):
         return self.nn.forward(self.input_vectors)
@@ -255,16 +283,22 @@ class Things:
     def gradient_move(self, neural_action):
         return (
             neural_action[:, 0].unsqueeze(1) *
-            self.input_vectors[:, 7:9].squeeze(2) +
+            self.input_vectors[:, 5:7].squeeze(2) +
             neural_action[:, 1].unsqueeze(1) *
-            self.input_vectors[:, 10:12].squeeze(2) +
+            self.input_vectors[:, 8:10].squeeze(2) +
             neural_action[:, 2].unsqueeze(1) *
-            self.input_vectors[:, 13:14].squeeze(2)
+            self.input_vectors[:, 11:13].squeeze(2)
         ) * 10.
 
-    def constant_velocity(self):
+    def constant_velocity(self, speed = 5.):
         theta = self.carried_messages[:, 0]
-        return torch.tensor(torch.cos(theta), torch.sin(theta)) * 5.
+        return speed * torch.stack(
+            [
+                torch.cos(theta),
+                torch.sin(theta)
+            ],
+            dim = 1
+        )
 
     def final_action(self, grid):
         # Update sensory inputs
@@ -272,8 +306,10 @@ class Things:
 
         # Initialize the movement tensor for this step
         if self.N > 0:
-            self.movement_tensor = torch.tensor([[0., 0.]
-                                                 for _ in range(self.N)])
+            self.movement_tensor = torch.zeros(
+                (self.N, 2),
+                dtype = torch.float32
+            )
 
         # Monad movements & internal state
         if self.monad_mask.any():
@@ -307,17 +343,16 @@ class Things:
         # Monads and energy units to leave trace
         self.trace(grid)
 
-        # Auto-fission & messaging
+        # Message signaling & self-induced divison
         if self.monad_mask.any():
-            random_gen = torch.rand(self.Pop)
-            to_divide = neural_action[:, 3] > random_gen
-            for i in to_divide.nonzero():
-                self.monad_division(i.item())
+            signal = (
+                neural_action[:, 26] > torch.rand(self.Pop)
+            ).nonzero().squeeze(1)
+            if signal.any():
+                self.seminare(signal, neural_action[signal][:, 27:34])
 
-            random_gen = torch.rand(self.Pop)
-            emenate = (neural_action[:, 26] > random_gen).nonzero()
-            if emenate.any():
-                self.seminare(emenate, neural_action[emenate, 27:34])
+            for i in (neural_action[:, 3] > torch.rand(self.Pop)).nonzero():
+                self.monad_division(i.item())
 
         # Apply movements
         self.update_positions()
@@ -404,16 +439,18 @@ class Things:
 
         # EnergyUnit-monad collisions
         energy_monad_dist = distances[self.energy_mask][:, self.monad_mask]
-        collision_mask = (
+        energy_collision_mask = (
             (0. < energy_monad_dist) &
             (energy_monad_dist < (THING_TYPES["monad"]["size"] +
                                  THING_TYPES["energyUnit"]["size"]))
         )
 
-        if collision_mask.any():
-            energy_idx, monad_idx = collision_mask.nonzero(as_tuple = True)
+        if energy_collision_mask.any():
+            energy_idx, monad_idx = energy_collision_mask.nonzero(
+                as_tuple = True
+            )
             energy_per_monad = (
-                UNIT_ENERGY / collision_mask[energy_idx].sum(dim = 1)
+                UNIT_ENERGY / energy_collision_mask[energy_idx].sum(dim = 1)
             )
             self.energies.scatter_add_(
                 0,
@@ -421,36 +458,38 @@ class Things:
                 energy_per_monad
             )
             energy_idx_general = torch.where(self.energy_mask)[0][energy_idx]
-            self.remove_energyUnits(unique(energy_idx_general.tolist()))
 
         # Message-monad collisions
         message_monad_dist = distances[self.monad_mask][:, self.message_mask]
-        collision_mask = (
+        message_collision_mask = (
             (0. < message_monad_dist) &
             (message_monad_dist < (THING_TYPES["monad"]["size"] +
                                   THING_TYPES["message"]["size"]))
         )
 
-        if collision_mask.any():
-            monad_has_collision = collision_mask.any(dim = 1)
-            monad_indices = torch.where(monad_has_collision)[0]
-
-            _, first_arrivers = torch.topk(
-                collision_mask[monad_has_collision].int(),
+        if message_collision_mask.any():
+            monad_indices = message_collision_mask.any(
                 dim = 1
-            )
-            message_indices = torch.where(self.message_mask)[0]
-            first_arrivers = message_indices[first_arrivers]
-
-            delivered_messages = self.carried_messages[first_arrivers]
+            ).nonzero().squeeze(1)
+            first_arrivers = torch.max(
+                message_collision_mask[monad_indices].int(),
+                dim = 1
+            )[1]
+            messages_to_deliver = self.carried_messages[first_arrivers]
             self.incoming_messages[monad_indices] = torch.cat(
                 (
-                    torch.cos(delivered_messages[:, 0]).unsqueeze(1),
-                    torch.sin(delivered_messages[:, 0]).unsqueeze(1),
-                    delivered_messages[:, 1:]
+                    torch.cos(messages_to_deliver[:, 0]).unsqueeze(1),
+                    torch.sin(messages_to_deliver[:, 0]).unsqueeze(1),
+                    messages_to_deliver[:, 1:]
                 ),
                 dim = 1
             )
+
+        # Clean the field
+        if energy_collision_mask.any():
+            self.remove_energyUnits(unique(energy_idx_general.tolist()))
+
+        if message_collision_mask.any():
             self.delete_signals(unique(first_arrivers.tolist()))
 
     def monad_division(self, i):
@@ -610,6 +649,7 @@ class Things:
             self.monad_mask = remove_element(self.monad_mask, idx)
             self.energy_mask = remove_element(self.energy_mask, idx)
             self.structure_mask = remove_element(self.structure_mask, idx)
+            self.message_mask = remove_element(self.message_mask, idx)
 
         # Update collective state vars
         self.N -= len(indices)
@@ -752,7 +792,7 @@ class Things:
         self.message_mask = self.message_mask[mask]
 
     def draw(self, screen, show_info = True, show_sight = False,
-             show_forces = True, show_messages = False):
+             show_forces = True, show_messages = True):
         for i, pos in enumerate(self.positions):
             thing_type = self.thing_types[i]
             thing_color = self.colors[i]
@@ -870,6 +910,9 @@ class Things:
         self.structure_mask = torch.tensor(
             [thing_type == "structuralUnit" for thing_type in self.thing_types]
         )
+        self.message_mask = torch.tensor(
+            [thing_type == "message" for thing_type in self.thing_types]
+        )
         self.Pop = self.monad_mask.sum().item()
         self.E = self.energies.sum().item() // 1000
 
@@ -936,21 +979,18 @@ class Things:
 
         idx = torch.where(self.monad_mask)[0][i]
         N = len(idx)
+        self.N += N
         angles = message_to_carry[:, 0] * 2 * math.pi
-        pos = (
-            self.positions[idx] +
-            torch.stack(
-                [
-                    torch.cos(angles),
-                    torch.sin(angles)
-                ],
-                dim = 1
-            ) * 8.
+
+        v = torch.stack(
+            [
+                torch.cos(angles),
+                torch.sin(angles)
+            ],
+            dim = 1
         )
 
-        self.thing_types = self.thing_types.append(
-            ["message" for _ in range(N)]
-        )
+        self.thing_types += ["message" for _ in range(N)]
         self.sizes = torch.cat(
             (
                 self.sizes,
@@ -963,12 +1003,17 @@ class Things:
         self.positions = torch.cat(
             (
                 self.positions,
-                pos
+                self.positions[idx] + v * 7.
             ),
             dim = 0
         )
-        self.colors = self.colors.append(
-            [THING_TYPES["message"]["color"] for _ in range(N)]
+        self.colors += [THING_TYPES["message"]["color"] for _ in range(N)]
+        self.movement_tensor = torch.cat(
+            (
+                self.movement_tensor,
+                v
+            ),
+            dim = 0
         )
         self.carried_messages = torch.cat(
             (
@@ -977,7 +1022,7 @@ class Things:
             ),
             dim = 0
         )
-        self.floating_meesages += 1
+        self.floating_meesages += N
         self.monad_mask = torch.cat(
             (
                 self.monad_mask,
@@ -1007,14 +1052,15 @@ class Things:
             dim = 0
         )
 
-        self.energies[i] -= 10.
+        self.energies[i] -= 1.
 
     def delete_signals(self, indices):
-        for i in indices[::-1]:
+        idx = torch.where(self.message_mask)[0][indices]
+
+        for i in torch.sort(idx, descending = True)[0].tolist():
             del self.thing_types[i]
             del self.colors[i]
 
-        idx = message_indices[indices].sum(1)
         mask = torch.ones(self.N, dtype = torch.bool)
         mask[idx] = False
         self.N = mask.sum().item()
@@ -1029,3 +1075,4 @@ class Things:
         carried_mask = torch.ones(self.floating_meesages, dtype = torch.bool)
         carried_mask[indices] = False
         self.carried_messages = self.carried_messages[carried_mask]
+        self.floating_meesages -= len(indices)

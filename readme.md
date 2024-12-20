@@ -75,14 +75,15 @@
 		* Structural unit sensors: 8 x 2 neurons [0, 1]
 		* Energy: 1 neron [0, 1]
 	* Action organs - 26 neurons
-		* Gradient movement: 3 nerons [-1, 1]
+		* Gradient movement: 3 neurons [-1, 1]
 		* Division: 1 neuron [-1, 1]
 		* Structural unit reaction manipulation: 8 x 2 neurons [-1, 1]
 	* Memory - 6 tanh(float32)
 	* Neural net - nn03 with 342 hidden neurons (34k parameters)
 * Monad9B406: Same with Monad9A406, except using nn13 instead of nn03 (60k
 							parameters)
-* Monad0Xx: 
+* Monad0Xx:
+
 
 
 --\
