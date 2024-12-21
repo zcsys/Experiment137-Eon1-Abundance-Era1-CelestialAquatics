@@ -96,7 +96,7 @@ class Grid:
 
     def apply_forces(self, force_field, scale = 0.001):
         # Prevent overflows
-        force_field.clamp_(-10, 10)
+        force_field.clamp_(-100, 100)
 
         # Get movements
         x_positive = torch.clamp(force_field[0], min = 0) * self.grid[0] * scale
