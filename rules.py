@@ -27,18 +27,17 @@ def Rules(simul, n):
 
     # Population control
     if 2 in n:
-        if simul.things.E <= 500:
+        if simul.things.E <= 400:
             METABOLIC_ACTIVITY_CONSTANT = 0.1
-        elif 500 < simul.things.E <= 600:
-            METABOLIC_ACTIVITY_CONSTANT = 0.1 + 0.009 * (simul.things.E - 500)
-        elif 600 < simul.things.E:
-            METABOLIC_ACTIVITY_CONSTANT = 1. + 0.09 * (simul.things.E - 600)
+        elif 400 < simul.things.E <= 500:
+            METABOLIC_ACTIVITY_CONSTANT = 0.1 + 0.009 * (simul.things.E - 400)
+        elif 500 < simul.things.E:
+            METABOLIC_ACTIVITY_CONSTANT = 1. + 0.09 * (simul.things.E - 500)
 
     # Resource management
     if 3 in n:
-        if simul.things.N < N_TARGET:
-            simul.things.add_energyUnits_atGridCells(simul.grid.grid[0][1],
-                                                     ENERGY_THRESHOLD)
+        simul.things.add_energyUnits_atGridCells(simul.grid.grid[0][1],
+                                                 ENERGY_THRESHOLD)
 
     # Autogenetic breeding
     if 4 in n:
