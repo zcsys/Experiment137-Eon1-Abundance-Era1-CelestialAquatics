@@ -12,7 +12,7 @@ def Rules(simul, n):
         for i, mask in enumerate(fission_mask):
             if mask:
                 simul.things.monad_division(i)
-        if simul.period > 0:
+        if simul.period > 0 or simul.epoch > 0:
             simul.things.energies -= METABOLIC_ACTIVITY_CONSTANT
         else:
             simul.things.energies[50:] -= METABOLIC_ACTIVITY_CONSTANT
