@@ -10,12 +10,13 @@ SIGHT = 60
 AUTO_FISSION_THRESHOLD = 10000
 METABOLIC_ACTIVITY_CONSTANT = 0.1
 UNIT_ENERGY = 1000
-SYSTEM_HEAT = 3
+SYSTEM_HEAT = 11
 GRID_CELL_SIZE = 10
 RESOURCE_TARGET = 64
-ENERGY_THRESHOLD = 120
+ENERGY_THRESHOLD = 80
 FILL_TARGET = RESOURCE_TARGET + (ENERGY_THRESHOLD - RESOURCE_TARGET) * 0.25
 epsilon = 1e-5
+N_TARGET = 400
 
 colors = {
     "0": (0, 0, 0),
@@ -61,9 +62,9 @@ THING_TYPES = {
         "color": colors["R"],
         "size": 3
     },
-    "memoryUnit": {
+    "message": {
         "color": colors["B"],
-        "size": 10
+        "size": 2
     }
 }
 

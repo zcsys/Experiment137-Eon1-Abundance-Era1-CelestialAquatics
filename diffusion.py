@@ -8,7 +8,7 @@ from helpers import *
 
 class Grid:
     def __init__(self, cell_size = GRID_CELL_SIZE, feature_dim = 3,
-                 diffusion_rate = 0.01, saved_state = None):
+                 diffusion_rate = 0.001, saved_state = None):
         self.cell_size = cell_size
         self.feature_dim = feature_dim
         self.grid_x = SIMUL_WIDTH // cell_size
@@ -94,10 +94,10 @@ class Grid:
         torch.clamp_(self.grid[0], 0, 255)
         self.fill()
 
-    def apply_forces(self, force_field, scale = 0.01):
+    def apply_forces(self, force_field, scale = 0.001):
         # Prevent overflows
-        force_field.clamp_(-10, 10)
-        
+        force_field.clamp_(-100, 100)
+
         # Get movements
         x_positive = torch.clamp(force_field[0], min = 0) * self.grid[0] * scale
         x_negative = torch.clamp(force_field[0], max = 0) * self.grid[0] * scale

@@ -168,8 +168,6 @@ class Simulation:
         self.things = things_object
         self.age_start_time = time.time()
 
-        # self.things.add_structuralUnits(240)
-
         if load_file:
             with open(load_file, 'r') as f:
                 saved_data = json.load(f)
@@ -184,6 +182,8 @@ class Simulation:
             return
 
         self.grid = Grid()
+        self.things.add_structuralUnits(100)
+
         self.paused = False
         self.ui_manager = UIManager(self.screen, MENU_WIDTH, self.paused)
         self.step, self.age, self.epoch, self.period = 0, 0, 0, 0
@@ -236,7 +236,7 @@ class Simulation:
 
                 if not self.paused:
                     self.things.final_action(self.grid)
-                    Rules(self, [0, 1, 2, 3])
+                    Rules(self, [0, 2, 3])
                     self.update_state()
 
                 self.screen.fill(colors["0"])

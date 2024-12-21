@@ -63,6 +63,29 @@
 							4 tanh(float32) variables (11k parameters - fewer than that of
 							Monad8B265 despite having internal state because of the changed
 							universe)
+* nn03: Simple feed-forward network with 3 hidden layers (the first 2 with ReLU
+				and the 3rd with leaky RelU) of 4x, 3x, and 2x the input size, finally
+				transformed into the output layer with tanh
+* nn13: Same with nn03, except having DenseNet-style skip connections (from each
+				layer to all subsequent layers)
+* Monad9A406
+	* Sensory inputs - 38 neurons
+		* Elemental bias: 6 tanh(float32)
+		* Gradient sensors: 3 x 3 neurons [0, 1]
+		* Structural unit sensors: 8 x 2 neurons [0, 1]
+		* Energy: 1 neron [0, 1]
+	* Action organs - 26 neurons
+		* Gradient movement: 3 neurons [-1, 1]
+		* Division: 1 neuron [-1, 1]
+		* Structural unit reaction manipulation: 8 x 2 neurons [-1, 1]
+	* Memory - 6 tanh(float32)
+	* Neural net - nn03 with 342 hidden neurons (34k parameters)
+* Monad9B406: Same with Monad9A406, except using nn13 instead of nn03 (60k
+							parameters)
+* Monad0Xx: Failed attempt with messaging particles.
+* Monad9C285: Back to using nn2, with sense organs receiving the cummulative
+							effects of other monads and energy particles in sight
+							(17k parameters).
 
 
 
