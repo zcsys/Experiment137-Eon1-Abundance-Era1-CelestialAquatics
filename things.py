@@ -56,12 +56,14 @@ class Things:
         self.floating_meesages = 0
 
         # Initialize genomes and lineages
-        # self.genomes = create_initial_genomes(self.Pop, 38, 26)
-        genome_size = 6 + get_num_parameters_for_nn13(50, 34)
-        print("Number of neurons:", 50 * 10 + 34)
-        print("Genome size:", genome_size)
-        self.genomes = torch.zeros((self.Pop, genome_size),
-                                   dtype = torch.float32)
+        self.genomes = torch.cat(
+            (
+                torch.zeros((self.Pop, 6), dtype = torch.float32),
+                initialize_parameters(self.Pop, 50, 34, "nn2")
+            ),
+            dim = 1
+        )
+        print("Genome size:", self.genomes.shape[1])
         self.lineages = [[0] for _ in range(self.Pop)]
         self.apply_genomes()
 
@@ -75,9 +77,9 @@ class Things:
         return self.lineages[i][0] + len(self.lineages[i])
 
     def apply_genomes(self):
-        """Monad0X534 neurogenetics"""
+        """Monad0X352 neurogenetics"""
         self.elemental_biases = torch.tanh(self.genomes[:, :6])
-        self.nn = nn13(self.genomes[:, 6:], 50, 34)
+        self.nn = nn2(self.genomes[:, 6:], 50, 34)
 
     def mutate(self, i, probability = 0.1, strength = 1.):
         original_genome = self.genomes[i].clone()
@@ -262,17 +264,17 @@ class Things:
             grid.grid
         ).repeat(2, 1, 1, 1).squeeze(1)
 
-        # Monads to leave blue traces
+        # Monads to leave red traces
         indices = (self.positions[self.monad_mask] // grid.cell_size).long()
         for i in range(2):
-            force_field[i, 2][
+            force_field[i, 0][
                 indices[:, 1], indices[:, 0]
             ] += torch.rand((self.Pop,), dtype = torch.float32) * 20 - 10
 
-        # Energy units to leave red traces
+        # Energy units to leave blue traces
         indices = (self.positions[self.energy_mask] // grid.cell_size).long()
         for i in range(2):
-            force_field[i, 0][
+            force_field[i, 2][
                 indices[:, 1], indices[:, 0]
             ] += torch.rand((self.energy_mask.sum(),),
                             dtype = torch.float32) * 20 - 10
@@ -283,11 +285,11 @@ class Things:
     def gradient_move(self, neural_action):
         return (
             neural_action[:, 0].unsqueeze(1) *
-            self.input_vectors[:, 5:7].squeeze(2) +
+            self.input_vectors[:, 11:13].squeeze(2) +
             neural_action[:, 1].unsqueeze(1) *
-            self.input_vectors[:, 8:10].squeeze(2) +
+            self.input_vectors[:, 14:16].squeeze(2) +
             neural_action[:, 2].unsqueeze(1) *
-            self.input_vectors[:, 11:13].squeeze(2)
+            self.input_vectors[:, 17:19].squeeze(2)
         ) * 10.
 
     def constant_velocity(self, speed = 5.):
@@ -1052,7 +1054,7 @@ class Things:
             dim = 0
         )
 
-        self.energies[i] -= 1.
+        self.energies[i] -= 10.
 
     def delete_signals(self, indices):
         idx = torch.where(self.message_mask)[0][indices]

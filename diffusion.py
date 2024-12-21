@@ -94,7 +94,7 @@ class Grid:
         torch.clamp_(self.grid[0], 0, 255)
         self.fill()
 
-    def apply_forces(self, force_field, scale = 0.01):
+    def apply_forces(self, force_field, scale = 0.001):
         # Prevent overflows
         force_field.clamp_(-10, 10)
 
