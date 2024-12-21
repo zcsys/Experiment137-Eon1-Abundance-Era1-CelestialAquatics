@@ -23,28 +23,7 @@ def Rules(simul, n):
 
     # Incubation
     if 1 in n:
-        if simul.period > 0:
-            pass
-        elif simul.epoch >= 60:
-            update_system_heat(3)
-            update_energy_threshold(120)
-            if simul.age % 40 == 0 and simul.step == 1:
-                simul.things.add_structuralUnits()
-        elif simul.epoch >= 40:
-            update_system_heat(5)
-            update_energy_threshold(110)
-            if simul.age % 40 == 0 and simul.step == 1:
-                simul.things.add_structuralUnits()
-        elif simul.epoch >= 20:
-            update_system_heat(7)
-            update_energy_threshold(105)
-            if simul.age % 40 == 0 and simul.step == 1:
-                simul.things.add_structuralUnits()
-        else:
-            update_system_heat(9)
-            update_energy_threshold(100)
-            if simul.epoch == 0 and simul.age == 0 and simul.step == 1:
-                simul.things.add_structuralUnits(120)
+        pass
 
     # Population control
     if 2 in n:

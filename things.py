@@ -718,9 +718,11 @@ class Things:
                                    int(pos[1].item())), SIGHT)
 
             try:
-                input_vector_1 = self.input_vectors[idx, 0:2].squeeze(1)
-                input_vector_2 = self.input_vectors[idx, 2:4].squeeze(1)
-                input_vector_3 = self.input_vectors[idx, 4:6].squeeze(1)
+                input_vector_1 = self.input_vectors[idx, 6:8].squeeze(1)
+                input_vector_2 = self.input_vectors[idx, 8:10].squeeze(1)
+                input_vector_3 = self.input_vectors[idx, 11:13].squeeze(1)
+                input_vector_4 = self.input_vectors[idx, 14:16].squeeze(1)
+                input_vector_5 = self.input_vectors[idx, 17:19].squeeze(1)
                 movement_vec = self.movement_tensor[i]
             except:
                 show_forces = False
@@ -728,20 +730,30 @@ class Things:
                 input_vector_1 /= torch.norm(input_vector_1, dim = 0) + epsilon
                 input_vector_2 /= torch.norm(input_vector_2, dim = 0) + epsilon
                 input_vector_3 /= torch.norm(input_vector_3, dim = 0) + epsilon
+                input_vector_4 /= torch.norm(input_vector_4, dim = 0) + epsilon
+                input_vector_5 /= torch.norm(input_vector_5, dim = 0) + epsilon
                 movement_vec /= torch.norm(movement_vec, dim = 0) + epsilon
 
                 end_pos_1 = pos + 2 * input_vector_1 * self.sizes[i]
                 end_pos_2 = pos + 2 * input_vector_2 * self.sizes[i]
                 end_pos_3 = pos + 2 * input_vector_3 * self.sizes[i]
-                end_pos_4 = pos - 2 * movement_vec * self.sizes[i]
+                end_pos_4 = pos + 2 * input_vector_4 * self.sizes[i]
+                end_pos_5 = pos + 2 * input_vector_5 * self.sizes[i]
+                end_pos_6 = pos - 2 * movement_vec * self.sizes[i]
 
-                pygame.draw.line(screen, colors["R"], (int(pos[0].item()),
+                pygame.draw.line(screen, colors["RG"], (int(pos[0].item()),
                                  int(pos[1].item())), (int(end_pos_1[0].item()),
                                  int(end_pos_1[1].item())), 1)
                 pygame.draw.line(screen, colors["GB"], (int(pos[0].item()),
                                  int(pos[1].item())), (int(end_pos_2[0].item()),
                                  int(end_pos_2[1].item())), 1)
-                pygame.draw.line(screen, colors["RB"], (int(pos[0].item()),
+                pygame.draw.line(screen, colors["R"], (int(pos[0].item()),
+                                 int(pos[1].item())), (int(end_pos_3[0].item()),
+                                 int(end_pos_2[1].item())), 1)
+                pygame.draw.line(screen, colors["G"], (int(pos[0].item()),
+                                 int(pos[1].item())), (int(end_pos_3[0].item()),
+                                 int(end_pos_2[1].item())), 1)
+                pygame.draw.line(screen, colors["B"], (int(pos[0].item()),
                                  int(pos[1].item())), (int(end_pos_3[0].item()),
                                  int(end_pos_2[1].item())), 1)
                 pygame.draw.line(screen, colors["RGB"], (int(pos[0].item()),
