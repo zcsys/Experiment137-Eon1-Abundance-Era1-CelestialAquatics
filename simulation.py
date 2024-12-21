@@ -182,7 +182,7 @@ class Simulation:
             return
 
         self.grid = Grid()
-        self.things.add_structuralUnits(240)
+        self.things.add_structuralUnits(100)
 
         self.paused = False
         self.ui_manager = UIManager(self.screen, MENU_WIDTH, self.paused)

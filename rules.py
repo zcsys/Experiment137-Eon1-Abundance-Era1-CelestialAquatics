@@ -15,7 +15,7 @@ def Rules(simul, n):
         if simul.period > 0:
             simul.things.energies -= METABOLIC_ACTIVITY_CONSTANT
         else:
-            simul.things.energies[100:] -= METABOLIC_ACTIVITY_CONSTANT
+            simul.things.energies[50:] -= METABOLIC_ACTIVITY_CONSTANT
         to_remove = torch.nonzero(simul.things.energies <= 0)
         if len(to_remove) > 0:
             simul.things.perish_monad(to_remove.squeeze(1).tolist())
@@ -48,15 +48,19 @@ def Rules(simul, n):
 
     # Population control
     if 2 in n:
-        if simul.things.E <= 850:
+        if simul.things.E <= 500:
             METABOLIC_ACTIVITY_CONSTANT = 0.1
-        elif 850 < simul.things.E <= 950:
-            METABOLIC_ACTIVITY_CONSTANT = 0.1 + 0.009 * (simul.things.E - 850)
-        elif 950 < simul.things.E:
-            METABOLIC_ACTIVITY_CONSTANT = 1. + 0.09 * (simul.things.E - 950)
+        elif 500 < simul.things.E <= 600:
+            METABOLIC_ACTIVITY_CONSTANT = 0.1 + 0.009 * (simul.things.E - 500)
+        elif 600 < simul.things.E:
+            METABOLIC_ACTIVITY_CONSTANT = 1. + 0.09 * (simul.things.E - 600)
 
     # Resource management
     if 3 in n:
         if simul.things.N < N_TARGET:
             simul.things.add_energyUnits_atGridCells(simul.grid.grid[0][1],
                                                      ENERGY_THRESHOLD)
+
+    # Autogenetic breeding
+    if 4 in n:
+        pass

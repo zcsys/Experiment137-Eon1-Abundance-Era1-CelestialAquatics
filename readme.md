@@ -58,6 +58,7 @@
 
 #### Era 1: Celestial Aquatics
 * Toroidal boundaries
+* Autogenetic breeding
 * Monad8C227: Structurally same as Monad8B265, except having an internal state
 							(works same as a memory organ - acts as both input and output) of
 							4 tanh(float32) variables (11k parameters - fewer than that of
@@ -82,7 +83,8 @@
 	* Neural net - nn03 with 342 hidden neurons (34k parameters)
 * Monad9B406: Same with Monad9A406, except using nn13 instead of nn03 (60k
 							parameters)
-* Monad0Xx:
+* Monad0Xx: Failed attempt with messaging particles
+* Monad9C285:
 
 
 
